@@ -1,0 +1,61 @@
+
+# Definition des services
+services:
+
+  # Serveur Web WordPress
+  wordpress:
+
+    # Construction de l'image depuis le Dockerfile
+    build: .
+
+    # Nom du conteneur
+    container_name: wordpress
+
+    # Redirection du port 8081 vers le port 80
+    ports:
+      - "8081:80"
+
+    # Attente de la disponibilite de la base de donnees
+    depends_on:
+      db:
+        condition: service_healthy
+
+    # Persistance des fichiers WordPress
+    volumes:
+      - wordpress_data:/var/www/html
+
+    # Redemarrage automatique
+    restart: unless-stopped
+
+  # Serveur de base de donnees
+  db:
+
+    # Image MariaDB
+    image: mariadb:10.11
+
+    container_name: wordpress-db
+
+    # Configuration de la base de donnees
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${ROOT_PASSWORD}
+
+    # Verification de la disponibilite de MariaDB
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+    # Persistance des donnees
+    volumes:
+      - db_data:/var/lib/mysql
+
+    restart: unless-stopped
+
+# Declaration des volumes Docker
+volumes:
+  wordpress_data:
+  db_data:
